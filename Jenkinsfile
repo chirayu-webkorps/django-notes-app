@@ -1,29 +1,50 @@
-@Library('Shared')_
+@Library("Shared_library") _
 pipeline{
-    agent { label 'dev-server'}
+    agent {label 'linux'}
     
     stages{
-        stage("Code clone"){
+        
+        stage("Start"){
             steps{
-                sh "whoami"
-            clone("https://github.com/chirayu-webkorps/django-notes-app","main")
+                script{
+                    my_first_Groovy()
+                }
             }
         }
-        stage("Code Build"){
+        stage("Code"){
             steps{
-            dockerbuild("notes-app","latest")
+                script{
+                    cloneCode("https://github.com/chirayu-webkorps/django-notes-app/","main")
+                }
+            }
+        }
+        stage("Build"){
+            steps{
+                script{
+                    Build_Docker('notes-app', 'latest', 'chirayu-webkorps' );
+                }
             }
         }
         stage("Push to DockerHub"){
             steps{
-                dockerpush("dockerHubCreds","notes-app","latest")
+                script{
+                    DokcerHub_Push("notes-app", "latest")
+                }
             }
         }
         stage("Deploy"){
             steps{
-                deploy()
+                echo "Deploying..."
+                sh '''
+                docker rm -f notes-app || true
+                
+                docker run -d \
+                --name notes-app \
+                --env-file /home/jenkins/workspace/DjangoCICD/.env \
+                -p 8000:8000 \
+                notes-app:latest 
+                '''
             }
         }
-        
     }
 }
